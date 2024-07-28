@@ -4,15 +4,17 @@ import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
 import numpy as np
+import zipfile
 
 #import time
 #start = time.time()
 
-train = 'C:/Users/sange/Downloads/archive/train'
-test = 'C:/Users/sange/Downloads/archive/test'
+train = 'train' 
+test = 'test'
 
 img_width, img_height, channels = 224, 224, 3
-batch_size = 1024
+#batch_size = 1024
+batch_size = 64 # alternative batch size
 
 nb_train_samples = 28709
 nb_test_samples = 7178
