@@ -6,8 +6,10 @@ from torchvision.models import ResNet18_Weights
 import time
 from tqdm import tqdm
 from torchinfo import summary
+import evaluate
 
 import preprocessor
+
 
 class CustomHead(nn.Module):
     def __init__(self, featr):
@@ -33,16 +35,14 @@ class CustomHead(nn.Module):
         return x
 
 
-
-
-# Load a pre-trained ResNet model
+# Load a ResNet model
 weights = ResNet18_Weights.DEFAULT
 model = models.resnet18(weights=weights)
 featr = model.fc.in_features
 model.fc = CustomHead(featr)
 
-
-summary(model, input_size=(preprocessor.batch_size, preprocessor.channels, preprocessor.img_width, preprocessor.img_height))
+#summary(model,
+     #   input_size=(preprocessor.batch_size, preprocessor.channels, preprocessor.img_width, preprocessor.img_height))
 
 # Define the loss function and optimizer
 criterion = nn.CrossEntropyLoss()
@@ -50,35 +50,53 @@ optimizer = optim.Adam(model.parameters(), lr=.001)
 
 # Training loop
 num_epochs = 20
+
+def train(model):
+    model.load_state_dict(torch.load('emotion_detector_epoch_1.pth '))
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = model.to(device)
+
+    for epoch in range(num_epochs):
+        print(f'Epoch: {epoch}')
+        model.train()
+        running_loss = 0.0
+
+        start_time = time.time()
+
+        # Use tqdm for progress bar
+        with tqdm(total=len(preprocessor.dataloaders['train']), desc=f'Epoch {epoch + 1}/{num_epochs}',
+                  unit='batch') as pbar:
+            for batch_idx, (inputs, labels) in enumerate(preprocessor.dataloaders['train']):
+                inputs, labels = inputs.to(device), labels.to(device)
+
+                optimizer.zero_grad()
+                outputs = model(inputs)
+                loss = criterion(outputs, labels)
+                loss.backward()
+                optimizer.step()
+                running_loss += loss.item() * inputs.size(0)
+
+                pbar.set_postfix(loss=loss.item())
+                pbar.update(1)
+
+        epoch_loss = running_loss / len(preprocessor.dataloaders['train'].dataset)
+        elapsed_time = time.time() - start_time
+        print(f'Epoch {epoch + 1}/{num_epochs}, Loss: {epoch_loss:.4f}, Time: {elapsed_time:.2f}s')
+        evaluate.evaluate_model(model, device)
+        # Save checkpoint every epoch
+        torch.save(model.state_dict(), f'emotion_detector_epoch_{epoch + 1}.pth')
+
+
+
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = model.to(device)
+for epoch in range(1, 10):
+    model_file = f'emotion_detector_epoch_{epoch}.pth'
+    print(f"Model: {model_file}")
+    model.load_state_dict(torch.load(model_file, weights_only=True))
+    evaluate.evaluate_model(model, device)
 
-model.load_state_dict(torch.load('emotion_detector_epoch_2l.pth'))
-for epoch in range(num_epochs):
-    print(f'Epoch: {epoch}')
-    model.train()
-    running_loss = 0.0
 
-    start_time = time.time()
-
-    # Use tqdm for progress bar
-    with tqdm(total=len(preprocessor.dataloaders['train']), desc=f'Epoch {epoch + 1}/{num_epochs}', unit='batch') as pbar:
-        for batch_idx, (inputs, labels) in enumerate(preprocessor.dataloaders['train']):
-            inputs, labels = inputs.to(device), labels.to(device)
-
-            optimizer.zero_grad()
-            outputs = model(inputs)
-            loss = criterion(outputs, labels)
-            loss.backward()
-            optimizer.step()
-            running_loss += loss.item() * inputs.size(0)
-
-            pbar.set_postfix(loss=loss.item())
-            pbar.update(1)
-
-    epoch_loss = running_loss / len(preprocessor.dataloaders['train'].dataset)
-    elapsed_time = time.time() - start_time
-    print(f'Epoch {epoch + 1}/{num_epochs}, Loss: {epoch_loss:.4f}, Time: {elapsed_time:.2f}s')
-
-    # Save checkpoint every epoch
-    torch.save(model.state_dict(), f'emotion_detector_epoch_{epoch + 1}.pth')
+#train(model)

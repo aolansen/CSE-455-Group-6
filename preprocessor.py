@@ -13,8 +13,8 @@ train = 'train'
 test = 'test'
 
 img_width, img_height, channels = 224, 224, 3
-#batch_size = 1024
-batch_size = 64 # alternative batch size
+batch_size = 1028
+#batch_size = 64 # alternative batch size
 
 nb_train_samples = 28709
 nb_test_samples = 7178
