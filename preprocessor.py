@@ -31,11 +31,6 @@ data_transforms = {
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 
     ]),
-    'val': transforms.Compose([
-        transforms.Resize((img_width, img_height)),
-        transforms.ToTensor(),  # Convert PIL image to tensor
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-    ]),
     'test': transforms.Compose([
         transforms.Resize((img_width, img_height)),
         transforms.ToTensor(),  # Convert PIL image to tensor
